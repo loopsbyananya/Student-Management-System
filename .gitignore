@@ -1,0 +1,9 @@
+*.class
+*.log
+*.jar
+bin/
+target/
+node_modules/
+.DS_Store
+.idea/
+.vscode/
