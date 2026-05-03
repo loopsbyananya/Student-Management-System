@@ -1,6 +1,9 @@
 # Student Management System
 
-A Java OOP-based Student Management System with Swing GUI, MySQL database, and JDBC connectivity.
+**Latest Update**: Modernized UI/UX with Indigo/Slate theme, Performance Analytics, and Subject-wise Attendance tracking.
+
+## Overview
+This is a comprehensive Student Management System built with Java Swing... GUI, MySQL database, and JDBC connectivity.
 
 ## Prerequisites
 
