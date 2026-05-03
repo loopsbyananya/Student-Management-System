@@ -88,18 +88,11 @@ public class HeaderPanel extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        // White background
+        // White background with slight transparency
         g2.setColor(Theme.HEADER_BG);
         g2.fillRect(0, 0, w, h);
 
-        // Bottom shadow gradient for depth
-        GradientPaint shadow = new GradientPaint(
-                0, h - 4, new Color(0, 0, 0, 12),
-                0, h, new Color(0, 0, 0, 0));
-        g2.setPaint(shadow);
-        g2.fillRect(0, h - 4, w, 4);
-
-        // Bottom border line
+        // Very subtle bottom border
         g2.setColor(Theme.BORDER);
         g2.drawLine(0, h - 1, w, h - 1);
 

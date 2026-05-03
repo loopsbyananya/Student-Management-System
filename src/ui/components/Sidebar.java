@@ -36,7 +36,17 @@ public class Sidebar extends JPanel {
         container = new JPanel();
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
         container.setBackground(Theme.SIDEBAR_BG);
-        add(container, BorderLayout.CENTER);
+
+        // Wrap the container in a JScrollPane to enable scrolling
+        JScrollPane scrollPane = new JScrollPane(container);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(Theme.SIDEBAR_BG);
+        scrollPane.getViewport().setBackground(Theme.SIDEBAR_BG);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(6, 0)); // Slim scrollbar
+
+        add(scrollPane, BorderLayout.CENTER);
 
         // --- App title / branding ---
         JPanel brandPanel = new JPanel();
@@ -241,10 +251,10 @@ container.add(navPanel);
         }
         activeButton = btn;
         if (btn != null) {
-            btn.setBackground(new Color(35, 48, 68)); // Subtle active bg
-            btn.setForeground(Theme.TEXT_LIGHT);
+            btn.setBackground(new Color(30, 41, 59)); // Slate 800
+            btn.setForeground(Theme.SIDEBAR_INDICATOR);
             if (btn.getParent() != null) {
-                btn.getParent().setBackground(new Color(35, 48, 68));
+                btn.getParent().setBackground(new Color(30, 41, 59));
                 btn.getParent().repaint();
             }
         }

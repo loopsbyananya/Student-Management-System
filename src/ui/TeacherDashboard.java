@@ -44,10 +44,10 @@ public class TeacherDashboard extends JFrame {
         this.submissionDAO = new SubmissionDAO();
 
         setTitle("Teacher Dashboard - " + user.getName());
-        setSize(1050, 680);
+        setSize(1120, 720);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(900, 580));
+        setMinimumSize(new Dimension(1000, 650));
         setLayout(new BorderLayout());
 
         // --- Sidebar ---
@@ -168,15 +168,17 @@ private void showDashboardHome() {
 
         JTextField studentIdField = styledField();
         JTextField dateField = styledField();
+        JTextField subjectField = styledField();
         JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Present", "Absent"});
         statusCombo.setFont(Theme.FONT_BODY);
-        statusCombo.setPreferredSize(new Dimension(280, 40));
+        statusCombo.setPreferredSize(new Dimension(280, 42));
 
         addRow(form, gbc, 0, "Student ID", studentIdField);
         addRow(form, gbc, 1, "Date (YYYY-MM-DD)", dateField);
-        addRow(form, gbc, 2, "Status", statusCombo);
+        addRow(form, gbc, 2, "Subject", subjectField);
+        addRow(form, gbc, 3, "Status", statusCombo);
 
-        gbc.gridx = 1; gbc.gridy = 3;
+        gbc.gridx = 1; gbc.gridy = 4;
         gbc.insets = new Insets(16, 10, 10, 10);
         StyledButton saveBtn = new StyledButton("Mark Attendance");
         form.add(saveBtn, gbc);
@@ -186,11 +188,15 @@ private void showDashboardHome() {
         saveBtn.addActionListener(e -> {
             String sid = studentIdField.getText().trim();
             String date = dateField.getText().trim();
+            String sub = subjectField.getText().trim();
             String status = (String) statusCombo.getSelectedItem();
-            if (sid.isEmpty() || date.isEmpty()) { warn("Student ID and Date are required."); return; }
-            if (attendanceDAO.markAttendance(sid, date, status)) {
-                info("Attendance marked successfully!");
-                studentIdField.setText(""); dateField.setText("");
+            if (sid.isEmpty() || date.isEmpty() || sub.isEmpty()) { 
+                warn("All fields (ID, Date, Subject) are required."); 
+                return; 
+            }
+            if (attendanceDAO.markAttendance(sid, date, status, sub)) {
+                info("Attendance marked for " + sub + " successfully!");
+                studentIdField.setText(""); dateField.setText(""); subjectField.setText("");
             } else err("Failed to mark attendance. Check Student ID.");
         });
     }
@@ -575,27 +581,38 @@ private void showDashboardHome() {
         headerPanel.setTitle("Search Students");
         CardPanel card = new CardPanel("Search & Filter");
 
-        JPanel searchBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel searchBar = new JPanel(new GridBagLayout());
         searchBar.setOpaque(false);
-        searchBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+        searchBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        GridBagConstraints sgbc = new GridBagConstraints();
+        sgbc.insets = new Insets(0, 0, 0, 12);
+        sgbc.anchor = GridBagConstraints.WEST;
 
         JTextField searchField = styledField();
-        searchField.setPreferredSize(new Dimension(200, 40));
+        searchField.setPreferredSize(new Dimension(220, 42));
         StyledButton searchBtn = new StyledButton("Search");
+        searchBtn.setPreferredSize(new Dimension(120, 42));
 
         JComboBox<String> filterCombo = new JComboBox<>();
         filterCombo.setFont(Theme.FONT_BODY);
-        filterCombo.setPreferredSize(new Dimension(180, 40));
+        filterCombo.setPreferredSize(new Dimension(200, 42));
         filterCombo.addItem("All Students");
         for (Subject sub : subjectDAO.getAllSubjects())
             filterCombo.addItem("Subject: " + sub.getSubjectId() + " - " + sub.getSubjectName());
 
-        searchBar.add(new JLabel("Search:") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_PRIMARY); }});
-        searchBar.add(searchField);
-        searchBar.add(searchBtn);
-        searchBar.add(Box.createRigidArea(new Dimension(16, 0)));
-        searchBar.add(new JLabel("Filter:") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_PRIMARY); }});
-        searchBar.add(filterCombo);
+        sgbc.gridx = 0;
+        searchBar.add(new JLabel("Search") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_SECONDARY); }}, sgbc);
+        sgbc.gridx = 1;
+        searchBar.add(searchField, sgbc);
+        sgbc.gridx = 2;
+        searchBar.add(searchBtn, sgbc);
+        sgbc.gridx = 3;
+        sgbc.insets = new Insets(0, 20, 0, 12);
+        searchBar.add(new JLabel("Filter") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_SECONDARY); }}, sgbc);
+        sgbc.gridx = 4;
+        sgbc.insets = new Insets(0, 0, 0, 0);
+        sgbc.weightx = 1.0;
+        searchBar.add(filterCombo, sgbc);
 
         card.add(searchBar, BorderLayout.NORTH);
 

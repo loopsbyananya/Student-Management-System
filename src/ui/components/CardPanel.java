@@ -59,21 +59,21 @@ public class CardPanel extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        // --- Drop shadow (layered for depth) ---
+        // --- Drop shadow (Modern layered style) ---
         for (int i = 0; i < s; i++) {
-            float alpha = 0.04f * (s - i);
-            g2.setColor(new Color(0, 0, 0, Math.min(255, (int)(alpha * 255))));
-            g2.fillRoundRect(i, i + 2, w - i * 2, h - i * 2,
-                    Theme.CARD_ARC + 2, Theme.CARD_ARC + 2);
+            float alpha = 0.02f * (s - i);
+            g2.setColor(new Color(0, 0, 0, (int)(alpha * 255)));
+            g2.fillRoundRect(i, i + 3, w - i * 2, h - i * 2,
+                    Theme.CARD_ARC + i, Theme.CARD_ARC + i);
         }
 
-        // --- White card body ---
+        // --- Card body ---
         g2.setColor(getBackground());
         g2.fillRoundRect(s, s, w - s * 2, h - s * 2,
                 Theme.CARD_ARC, Theme.CARD_ARC);
 
-        // --- Subtle border on top of card ---
-        g2.setColor(Theme.BORDER);
+        // --- Subtle hairline border ---
+        g2.setColor(new Color(226, 232, 240, 150));
         g2.setStroke(new BasicStroke(1f));
         g2.drawRoundRect(s, s, w - s * 2 - 1, h - s * 2 - 1,
                 Theme.CARD_ARC, Theme.CARD_ARC);

@@ -89,9 +89,9 @@ public class TableFactory {
         header.setBackground(Theme.TABLE_HEADER_BG);
         header.setForeground(Theme.TEXT_LIGHT);
         header.setFont(Theme.FONT_TABLE_HEADER);
-        header.setPreferredSize(new Dimension(0, 44));
+        header.setPreferredSize(new Dimension(0, 52)); // Taller header
         header.setReorderingAllowed(false);
-        header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, Theme.PRIMARY));
+        header.setBorder(null);
 
         DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
             @Override
@@ -103,11 +103,7 @@ public class TableFactory {
                 label.setBackground(Theme.TABLE_HEADER_BG);
                 label.setForeground(Theme.TEXT_LIGHT);
                 label.setFont(Theme.FONT_TABLE_HEADER);
-                label.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 0, 1,
-                                new Color(50, 60, 80)),
-                        BorderFactory.createEmptyBorder(0, 16, 0, 16)
-                ));
+                label.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
                 return label;
             }
         };

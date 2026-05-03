@@ -9,6 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Extended Student Dashboard with sidebar navigation, header, and card-based content.
@@ -101,7 +102,7 @@ private void showDashboardHome() {
 
     // Attendance Card
     List<String[]> attendance = attendanceDAO.getAttendanceByStudent(currentUser.getId());
-    long present = attendance.stream().filter(a -> "Present".equals(a[1])).count();
+    long present = attendance.stream().filter(a -> "Present".equals(a[2])).count();
 
     CardPanel attCard = new CardPanel();
     attCard.setLayout(new BorderLayout());
@@ -190,19 +191,22 @@ private void showDashboardHome() {
         headerPanel.setTitle("My Attendance");
         CardPanel card = new CardPanel("Attendance Records");
         List<String[]> att = attendanceDAO.getAttendanceByStudent(currentUser.getId());
-        String[] cols = {"Date", "Status"};
+        String[] cols = {"Date", "Subject", "Status"};
         DefaultTableModel tm = new DefaultTableModel(cols, 0);
-        for (String[] row : att) tm.addRow(row);
+        for (String[] row : att) {
+            // DAO returns [date, subject, status]
+            tm.addRow(new Object[]{row[0], row[1], row[2]});
+        }
         card.add(TableFactory.createStyledTable(tm), BorderLayout.CENTER);
 
         // Attendance analysis footer
         long present = 0;
-        for (String[] r : att) if ("Present".equals(r[1])) present++;
+        for (String[] r : att) if ("Present".equals(r[2])) present++;
         double pct = att.isEmpty() ? 0 : (present * 100.0 / att.size());
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         footer.setOpaque(false);
         footer.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-        JLabel pctLabel = new JLabel(String.format("Attendance: %.1f%% (%d/%d days)", pct, present, att.size()));
+        JLabel pctLabel = new JLabel(String.format("Overall Attendance: %.1f%% (%d/%d days)", pct, present, att.size()));
         pctLabel.setFont(Theme.FONT_BODY_BOLD);
         pctLabel.setForeground(pct >= 75 ? Theme.SUCCESS : Theme.DANGER);
         footer.add(pctLabel);
@@ -597,7 +601,7 @@ private void showDashboardHome() {
         double gpa = calculateGPA(marks);
 
         long present = 0;
-        for (String[] r : att) if ("Present".equals(r[1])) present++;
+        for (String[] r : att) if ("Present".equals(r[2])) present++;
         double pct = att.isEmpty() ? 0 : (present * 100.0 / att.size());
 
         JPanel statsRow = new JPanel(new GridLayout(1, 4, 16, 0));
@@ -611,15 +615,39 @@ private void showDashboardHome() {
         statsRow.add(miniStatCard("Weak Subject", count > 0 ? weakSubject : "N/A", Theme.DANGER));
         wrapper.add(statsRow, BorderLayout.NORTH);
 
-        // --- Attendance warning ---
+        // --- Center: Charts & Warning ---
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setOpaque(false);
+
+        // Attendance warning
         if (pct < 75 && !att.isEmpty()) {
             JPanel warnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             warnPanel.setOpaque(false);
+            warnPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
             JLabel warnLabel = new JLabel("\u26A0 Your attendance is below 75%. You may face detention.");
             warnLabel.setFont(Theme.FONT_BODY_BOLD);
             warnLabel.setForeground(Theme.DANGER);
             warnPanel.add(warnLabel);
+            centerPanel.add(warnPanel);
         }
+
+        // Progress Chart
+        CardPanel chartCard = new CardPanel("Academic Progress Trend");
+        List<Integer> values = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        for (String[] r : marks) {
+            try {
+                values.add(Integer.parseInt(r[1]));
+                labels.add(r[0]);
+            } catch (Exception ignored) {}
+        }
+        LineChartPanel chart = new LineChartPanel("Marks Trend", values, labels);
+        chartCard.add(chart, BorderLayout.CENTER);
+        centerPanel.add(chartCard);
+        centerPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        wrapper.add(centerPanel, BorderLayout.CENTER);
 
         // --- Bottom: tables ---
         JPanel grid = new JPanel(new GridLayout(1, 2, 20, 0));
@@ -641,9 +669,11 @@ private void showDashboardHome() {
         grid.add(marksCard);
 
         CardPanel attCard = new CardPanel("Attendance Summary");
-        String[] aCols = {"Date", "Status"};
+        String[] aCols = {"Date", "Subject", "Status"};
         DefaultTableModel aTM = new DefaultTableModel(aCols, 0);
-        for (String[] r : att) aTM.addRow(r);
+        for (String[] r : att) {
+            aTM.addRow(new Object[]{r[0], r[1], r[2]});
+        }
         attCard.add(TableFactory.createStyledTable(aTM), BorderLayout.CENTER);
         grid.add(attCard);
 

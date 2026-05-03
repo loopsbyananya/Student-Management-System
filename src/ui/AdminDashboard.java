@@ -36,10 +36,10 @@ public class AdminDashboard extends JFrame {
         this.assignmentDAO = new AssignmentDAO();
 
         setTitle("Admin Dashboard - " + user.getName());
-        setSize(1050, 680);
+        setSize(1120, 720); // Increased size
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(900, 580));
+        setMinimumSize(new Dimension(1000, 650));
         setLayout(new BorderLayout());
 
         // --- Sidebar ---
@@ -514,33 +514,41 @@ public class AdminDashboard extends JFrame {
     private void showSearchStudentsPanel() {
         headerPanel.setTitle("Search Students");
         CardPanel card = new CardPanel("Search & Filter");
-
-        JPanel searchBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel searchBar = new JPanel(new GridBagLayout());
         searchBar.setOpaque(false);
-        searchBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+        searchBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        GridBagConstraints sgbc = new GridBagConstraints();
+        sgbc.insets = new Insets(0, 0, 0, 12);
+        sgbc.anchor = GridBagConstraints.WEST;
 
         JTextField searchField = styledField();
-        searchField.setPreferredSize(new Dimension(200, 40));
+        searchField.setPreferredSize(new Dimension(220, 42));
         StyledButton searchBtn = new StyledButton("Search");
+        searchBtn.setPreferredSize(new Dimension(120, 42));
 
         // Filter combo
         JComboBox<String> filterCombo = new JComboBox<>();
         filterCombo.setFont(Theme.FONT_BODY);
-        filterCombo.setPreferredSize(new Dimension(180, 40));
+        filterCombo.setPreferredSize(new Dimension(200, 42));
         filterCombo.addItem("All Students");
-        // Add class filters
         for (String cls : studentDAO.getAllClasses())
             filterCombo.addItem("Class: " + cls);
-        // Add subject filters
         for (Subject sub : subjectDAO.getAllSubjects())
             filterCombo.addItem("Subject: " + sub.getSubjectId() + " - " + sub.getSubjectName());
 
-        searchBar.add(new JLabel("Search:") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_PRIMARY); }});
-        searchBar.add(searchField);
-        searchBar.add(searchBtn);
-        searchBar.add(Box.createRigidArea(new Dimension(16, 0)));
-        searchBar.add(new JLabel("Filter:") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_PRIMARY); }});
-        searchBar.add(filterCombo);
+        sgbc.gridx = 0;
+        searchBar.add(new JLabel("Search") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_SECONDARY); }}, sgbc);
+        sgbc.gridx = 1;
+        searchBar.add(searchField, sgbc);
+        sgbc.gridx = 2;
+        searchBar.add(searchBtn, sgbc);
+        sgbc.gridx = 3;
+        sgbc.insets = new Insets(0, 20, 0, 12);
+        searchBar.add(new JLabel("Filter") {{ setFont(Theme.FONT_FIELD_LABEL); setForeground(Theme.TEXT_SECONDARY); }}, sgbc);
+        sgbc.gridx = 4;
+        sgbc.insets = new Insets(0, 0, 0, 0);
+        sgbc.weightx = 1.0;
+        searchBar.add(filterCombo, sgbc);
 
         card.add(searchBar, BorderLayout.NORTH);
 

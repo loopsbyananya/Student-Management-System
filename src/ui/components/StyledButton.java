@@ -86,8 +86,8 @@ public class StyledButton extends JButton {
                 textColor = Theme.TEXT_LIGHT;
                 break;
             case SECONDARY:
-                baseColor = new Color(235, 239, 244);
-                hoverColor = new Color(215, 221, 228);
+                baseColor = Theme.CONTENT_BG;
+                hoverColor = Theme.BORDER;
                 textColor = Theme.TEXT_PRIMARY;
                 break;
             case PRIMARY:
@@ -108,31 +108,29 @@ public class StyledButton extends JButton {
         int w = getWidth();
         int h = getHeight();
 
-        // Subtle shadow below the button
+        // High-end shadow
         if (!isPressed && style != Style.SECONDARY) {
-            g2.setColor(new Color(0, 0, 0, 18));
-            g2.fillRoundRect(1, 2, w - 2, h - 1, Theme.BTN_ARC, Theme.BTN_ARC);
+            g2.setColor(new Color(0, 0, 0, 25));
+            g2.fillRoundRect(2, 4, w - 4, h - 4, Theme.BTN_ARC, Theme.BTN_ARC);
         }
 
-        // Button body — shift down slightly when pressed
+        // Button body
         int yOffset = isPressed ? 1 : 0;
         g2.setColor(currentColor);
-        g2.fillRoundRect(0, yOffset, w, h - 1, Theme.BTN_ARC, Theme.BTN_ARC);
+        g2.fillRoundRect(0, yOffset, w, h - (isPressed ? 0 : 2), Theme.BTN_ARC, Theme.BTN_ARC);
 
-        // Subtle highlight at top for 3D feel (for primary/danger only)
-        if (style != Style.SECONDARY && !isPressed) {
-            GradientPaint highlight = new GradientPaint(
-                    0, yOffset, new Color(255, 255, 255, 30),
-                    0, yOffset + h / 3, new Color(255, 255, 255, 0));
-            g2.setPaint(highlight);
-            g2.fillRoundRect(0, yOffset, w, h / 3, Theme.BTN_ARC, Theme.BTN_ARC);
+        // Subtle gradient overlay
+        if (!isPressed && style != Style.SECONDARY) {
+            GradientPaint gp = new GradientPaint(0, 0, new Color(255, 255, 255, 20), 0, h, new Color(0, 0, 0, 20));
+            g2.setPaint(gp);
+            g2.fillRoundRect(0, 0, w, h - 2, Theme.BTN_ARC, Theme.BTN_ARC);
         }
 
-        // Border for secondary style
+        // Border for secondary
         if (style == Style.SECONDARY) {
             g2.setColor(Theme.BORDER);
-            g2.setStroke(new BasicStroke(1f));
-            g2.drawRoundRect(0, yOffset, w - 1, h - 2, Theme.BTN_ARC, Theme.BTN_ARC);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(0, 0, w - 1, h - 2, Theme.BTN_ARC, Theme.BTN_ARC);
         }
 
         g2.dispose();
