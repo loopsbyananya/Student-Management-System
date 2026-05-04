@@ -499,7 +499,7 @@ public class AdminDashboard extends JFrame {
     private void showAllAttendancePanel() {
         headerPanel.setTitle("All Attendance");
         CardPanel card = new CardPanel("System-wide Attendance Records");
-        String[] cols = {"Student ID", "Name", "Date", "Status"};
+        String[] cols = {"Student ID", "Name", "Date", "Subject", "Status"};
         DefaultTableModel tm = new DefaultTableModel(cols, 0);
         for (String[] row : attendanceDAO.getAllAttendance())
             tm.addRow(row);

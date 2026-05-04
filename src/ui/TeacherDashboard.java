@@ -13,6 +13,10 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
 import java.io.FileOutputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.awt.Desktop;
 
 /**
  * Extended Teacher Dashboard with sidebar navigation, header, and card-based content.
@@ -168,14 +172,21 @@ private void showDashboardHome() {
 
         JTextField studentIdField = styledField();
         JTextField dateField = styledField();
-        JTextField subjectField = styledField();
+        dateField.setText(java.time.LocalDate.now().toString()); // Set today's date by default
+
+        JComboBox<String> subjectCombo = new JComboBox<>();
+        subjectCombo.setFont(Theme.FONT_BODY);
+        subjectCombo.setPreferredSize(new Dimension(280, 42));
+        for (Subject s : subjectDAO.getSubjectsByTeacher(currentUser.getId()))
+            subjectCombo.addItem(s.getSubjectId() + " - " + s.getSubjectName());
+
         JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Present", "Absent"});
         statusCombo.setFont(Theme.FONT_BODY);
         statusCombo.setPreferredSize(new Dimension(280, 42));
 
         addRow(form, gbc, 0, "Student ID", studentIdField);
         addRow(form, gbc, 1, "Date (YYYY-MM-DD)", dateField);
-        addRow(form, gbc, 2, "Subject", subjectField);
+        addRow(form, gbc, 2, "Subject", subjectCombo);
         addRow(form, gbc, 3, "Status", statusCombo);
 
         gbc.gridx = 1; gbc.gridy = 4;
@@ -188,7 +199,8 @@ private void showDashboardHome() {
         saveBtn.addActionListener(e -> {
             String sid = studentIdField.getText().trim();
             String date = dateField.getText().trim();
-            String sub = subjectField.getText().trim();
+            String sub = subjectCombo.getSelectedItem() != null ? 
+                         ((String) subjectCombo.getSelectedItem()).split(" - ")[0] : "";
             String status = (String) statusCombo.getSelectedItem();
             if (sid.isEmpty() || date.isEmpty() || sub.isEmpty()) { 
                 warn("All fields (ID, Date, Subject) are required."); 
@@ -196,7 +208,7 @@ private void showDashboardHome() {
             }
             if (attendanceDAO.markAttendance(sid, date, status, sub)) {
                 info("Attendance marked for " + sub + " successfully!");
-                studentIdField.setText(""); dateField.setText(""); subjectField.setText("");
+                studentIdField.setText("");
             } else err("Failed to mark attendance. Check Student ID.");
         });
     }
@@ -346,17 +358,23 @@ private void showDashboardHome() {
             int aId = Integer.parseInt(((String) assignmentCombo.getSelectedItem()).split(" - ")[0]);
             
             contentPanel.removeAll();
-            String[] cols = {"Submission ID", "Student ID", "Student Name", "File Path", "Marks", "Action"};
+            String[] cols = {"Submission ID", "Student ID", "Student Name", "Submissions", "Marks", "Action", "RawPaths"};
             DefaultTableModel tm = new DefaultTableModel(cols, 0) {
                 @Override public boolean isCellEditable(int row, int column) { return false; }
             };
             
             List<String[]> subs = submissionDAO.getSubmissionsByAssignmentWithId(aId);
             for (String[] s : subs) {
-                tm.addRow(new Object[]{s[0], s[1], s[2], s[3], s[4], "Grade"});
+                String paths = s[3] != null ? s[3] : "";
+                int count = paths.isEmpty() ? 0 : paths.split(";").length;
+                tm.addRow(new Object[]{s[0], s[1], s[2], "View " + count + " Files", s[4], "Grade", paths});
             }
             
             JTable table = new JTable(tm);
+            // Hide the RawPaths column
+            table.getColumnModel().getColumn(6).setMinWidth(0);
+            table.getColumnModel().getColumn(6).setMaxWidth(0);
+            table.getColumnModel().getColumn(6).setWidth(0);
             table.setFont(Theme.FONT_TABLE_CELL);
             table.setRowHeight(Theme.TABLE_ROW_HEIGHT);
             table.getTableHeader().setFont(Theme.FONT_TABLE_HEADER);
@@ -366,8 +384,8 @@ private void showDashboardHome() {
                     int row = table.rowAtPoint(ev.getPoint());
                     int col = table.columnAtPoint(ev.getPoint());
                     if (row >= 0 && col == 3) {
-                        String filePath = (String) tm.getValueAt(row, 3);
-                        JOptionPane.showMessageDialog(TeacherDashboard.this, "File path/content:\n" + filePath, "Submission Details", JOptionPane.INFORMATION_MESSAGE);
+                        String rawPaths = (String) tm.getValueAt(row, 6);
+                        showFilesDialog(rawPaths);
                     } else if (row >= 0 && col == 5) {
                         String subIdStr = (String) tm.getValueAt(row, 0);
                         String marksStr = JOptionPane.showInputDialog(TeacherDashboard.this, "Enter marks for submission:");
@@ -429,6 +447,18 @@ private void showDashboardHome() {
 
             List<String[]> marks = marksDAO.getMarksByStudent(sid);
             List<String[]> att = attendanceDAO.getAttendanceByStudent(sid);
+            Student student = studentDAO.getStudentById(sid);
+            String studentName = (student != null) ? student.getName() : "Unknown Student";
+
+            // Student Name Header
+            JLabel nameHeader = new JLabel("Performance for: " + studentName + " (" + sid + ")");
+            nameHeader.setFont(Theme.FONT_SUBTITLE);
+            nameHeader.setForeground(Theme.PRIMARY);
+            nameHeader.setBorder(BorderFactory.createEmptyBorder(0, 5, 10, 0));
+            resultsPanel.add(nameHeader, BorderLayout.NORTH);
+
+            JPanel innerResults = new JPanel(new BorderLayout(0, 12));
+            innerResults.setOpaque(false);
 
             // Compute stats
             double avg = 0; int count = 0;
@@ -443,7 +473,7 @@ private void showDashboardHome() {
             if (count > 0) avg /= count;
 
             long present = 0;
-            for (String[] r : att) if ("Present".equals(r[1])) present++;
+            for (String[] r : att) if ("Present".equals(r[2])) present++;
             double pct = att.isEmpty() ? 0 : (present * 100.0 / att.size());
 
             // Stats row
@@ -454,7 +484,7 @@ private void showDashboardHome() {
             statsRow.add(teacherStatCard("Attendance", String.format("%.1f%%", pct),
                     pct >= 75 ? Theme.SUCCESS : Theme.DANGER));
             statsRow.add(teacherStatCard("Weak Subject", count > 0 ? weakSubject : "N/A", Theme.AMBER));
-            resultsPanel.add(statsRow, BorderLayout.NORTH);
+            innerResults.add(statsRow, BorderLayout.NORTH);
 
             // Tables
             JPanel grid = new JPanel(new GridLayout(1, 2, 20, 0));
@@ -474,7 +504,7 @@ private void showDashboardHome() {
             attCard.add(TableFactory.createStyledTable(attTM), BorderLayout.CENTER);
             grid.add(attCard);
 
-            resultsPanel.add(grid, BorderLayout.CENTER);
+            innerResults.add(grid, BorderLayout.CENTER);
 
             // Report Card button
             JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -483,7 +513,9 @@ private void showDashboardHome() {
             final String studentId = sid;
             reportBtn.addActionListener(ev -> showReportCardForStudent(studentId));
             btnPanel.add(reportBtn);
-            resultsPanel.add(btnPanel, BorderLayout.SOUTH);
+            innerResults.add(btnPanel, BorderLayout.SOUTH);
+            
+            resultsPanel.add(innerResults, BorderLayout.CENTER);
 
             resultsPanel.revalidate();
             resultsPanel.repaint();
@@ -520,7 +552,7 @@ private void showDashboardHome() {
         }
         double gpa = cnt == 0 ? 0 : totalGP / cnt;
         long present = 0;
-        for (String[] r : att) if ("Present".equals(r[1])) present++;
+        for (String[] r : att) if ("Present".equals(r[2])) present++;
         double pct = att.isEmpty() ? 0 : (present * 100.0 / att.size());
         String grade = gpa >= 3.5 ? "A" : gpa >= 3.0 ? "B+" : gpa >= 2.5 ? "B" : gpa >= 2.0 ? "C" : gpa >= 1.0 ? "D" : "F";
 
@@ -528,6 +560,9 @@ private void showDashboardHome() {
         sb.append("======================================\n");
         sb.append("         STUDENT REPORT CARD          \n");
         sb.append("======================================\n\n");
+        Student student = studentDAO.getStudentById(studentId);
+        String studentName = (student != null) ? student.getName() : "Unknown Student";
+        sb.append("Name:       ").append(studentName).append("\n");
         sb.append("Student ID: ").append(studentId).append("\n\n");
         sb.append(String.format("%-20s %6s %6s\n", "Subject", "Marks", "Grade"));
         sb.append("--------------------------------------\n");
@@ -750,4 +785,80 @@ private void showDashboardHome() {
     private void warn(String m) { JOptionPane.showMessageDialog(this, m, "Input Error", JOptionPane.WARNING_MESSAGE); }
     private void info(String m) { JOptionPane.showMessageDialog(this, m, "Success", JOptionPane.INFORMATION_MESSAGE); }
     private void err(String m) { JOptionPane.showMessageDialog(this, m, "Error", JOptionPane.ERROR_MESSAGE); }
+
+    private void showFilesDialog(String rawPaths) {
+        if (rawPaths == null || rawPaths.trim().isEmpty()) {
+            info("No files attached to this submission.");
+            return;
+        }
+
+        String[] paths = rawPaths.split(";");
+        JPanel listPanel = new JPanel();
+        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+        listPanel.setOpaque(false);
+
+        for (String p : paths) {
+            String path = p.trim();
+            File file = new File(path);
+            String filename = file.getName();
+
+            JPanel item = new JPanel(new BorderLayout(15, 0));
+            item.setOpaque(false);
+            item.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+            JLabel nameLabel = new JLabel(filename);
+            nameLabel.setFont(Theme.FONT_BODY);
+            item.add(nameLabel, BorderLayout.CENTER);
+
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+            actions.setOpaque(false);
+
+            StyledButton openBtn = new StyledButton("Open", StyledButton.Style.SECONDARY);
+            openBtn.setPreferredSize(new Dimension(80, 32));
+            openBtn.addActionListener(e -> {
+                try {
+                    if (file.exists()) {
+                        Desktop.getDesktop().open(file);
+                    } else {
+                        err("File not found at: " + path);
+                    }
+                } catch (Exception ex) {
+                    err("Could not open file: " + ex.getMessage());
+                }
+            });
+
+            StyledButton dlBtn = new StyledButton("Download");
+            dlBtn.setPreferredSize(new Dimension(100, 32));
+            dlBtn.addActionListener(e -> {
+                if (!file.exists()) {
+                    err("Source file not found at: " + path);
+                    return;
+                }
+                JFileChooser saver = new JFileChooser();
+                saver.setSelectedFile(new File(filename));
+                int res = saver.showSaveDialog(this);
+                if (res == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        Files.copy(file.toPath(), saver.getSelectedFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        info("File saved successfully!");
+                    } catch (Exception ex) {
+                        err("Failed to save file: " + ex.getMessage());
+                    }
+                }
+            });
+
+            actions.add(openBtn);
+            actions.add(dlBtn);
+            item.add(actions, BorderLayout.EAST);
+
+            listPanel.add(item);
+            listPanel.add(new JSeparator());
+        }
+
+        JScrollPane scroll = new JScrollPane(listPanel);
+        scroll.setPreferredSize(new Dimension(500, 300));
+        scroll.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
+        
+        JOptionPane.showMessageDialog(this, scroll, "Submitted Files", JOptionPane.PLAIN_MESSAGE);
+    }
 }

@@ -10,6 +10,10 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.ArrayList;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.FileOutputStream;
 
 /**
  * Extended Student Dashboard with sidebar navigation, header, and card-based content.
@@ -584,6 +588,16 @@ private void showDashboardHome() {
         JPanel wrapper = new JPanel(new BorderLayout(0, 16));
         wrapper.setOpaque(false);
 
+        // Student Info Header
+        JLabel infoLabel = new JLabel("Performance for " + currentUser.getName() + " (" + currentUser.getId() + ")");
+        infoLabel.setFont(Theme.FONT_SUBTITLE);
+        infoLabel.setForeground(Theme.PRIMARY);
+        infoLabel.setBorder(BorderFactory.createEmptyBorder(0, 4, 10, 0));
+        wrapper.add(infoLabel, BorderLayout.NORTH);
+
+        JPanel innerContent = new JPanel(new BorderLayout(0, 16));
+        innerContent.setOpaque(false);
+
         // --- Top: stat cards row ---
         List<String[]> marks = marksDAO.getMarksByStudent(currentUser.getId());
         List<String[]> att = attendanceDAO.getAttendanceByStudent(currentUser.getId());
@@ -613,7 +627,7 @@ private void showDashboardHome() {
         statsRow.add(miniStatCard("GPA", String.format("%.2f", gpa), gpa >= 3.0 ? Theme.SUCCESS : Theme.AMBER));
         statsRow.add(miniStatCard("Attendance", String.format("%.1f%%", pct), pct >= 75 ? Theme.SUCCESS : Theme.DANGER));
         statsRow.add(miniStatCard("Weak Subject", count > 0 ? weakSubject : "N/A", Theme.DANGER));
-        wrapper.add(statsRow, BorderLayout.NORTH);
+        innerContent.add(statsRow, BorderLayout.NORTH);
 
         // --- Center: Charts & Warning ---
         JPanel centerPanel = new JPanel();
@@ -677,7 +691,8 @@ private void showDashboardHome() {
         attCard.add(TableFactory.createStyledTable(aTM), BorderLayout.CENTER);
         grid.add(attCard);
 
-        wrapper.add(grid, BorderLayout.CENTER);
+        innerContent.add(grid, BorderLayout.CENTER);
+        wrapper.add(innerContent, BorderLayout.CENTER);
 
         // --- Report Card button ---
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -717,7 +732,7 @@ private void showDashboardHome() {
         List<String[]> att = attendanceDAO.getAttendanceByStudent(currentUser.getId());
         double gpa = calculateGPA(marks);
         long present = 0;
-        for (String[] r : att) if ("Present".equals(r[1])) present++;
+        for (String[] r : att) if ("Present".equals(r[2])) present++;
         double pct = att.isEmpty() ? 0 : (present * 100.0 / att.size());
         String grade = gpa >= 3.5 ? "A (Excellent)" : gpa >= 3.0 ? "B+ (Very Good)" :
                        gpa >= 2.5 ? "B (Good)" : gpa >= 2.0 ? "C (Average)" :
@@ -754,7 +769,30 @@ private void showDashboardHome() {
         textArea.setBackground(Color.WHITE);
         JScrollPane sp = new JScrollPane(textArea);
         sp.setPreferredSize(new Dimension(450, 420));
-        JOptionPane.showMessageDialog(this, sp, "Report Card — " + currentUser.getName(), JOptionPane.PLAIN_MESSAGE);
+        
+        JPanel p = new JPanel(new BorderLayout());
+        p.add(sp, BorderLayout.CENTER);
+        
+        StyledButton exportBtn = new StyledButton("Export to PDF");
+        exportBtn.addActionListener(e -> {
+            try {
+                String filename = "ReportCard_" + currentUser.getId() + ".pdf";
+                Document document = new Document();
+                PdfWriter.getInstance(document, new FileOutputStream(filename));
+                document.open();
+                document.add(new Paragraph(sb.toString()));
+                document.close();
+                info("PDF saved to project folder: " + filename);
+            } catch (Exception ex) {
+                err("Failed to save PDF: " + ex.getMessage());
+            }
+        });
+        
+        JPanel bp = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bp.add(exportBtn);
+        p.add(bp, BorderLayout.SOUTH);
+        
+        JOptionPane.showMessageDialog(this, p, "Report Card — " + currentUser.getName(), JOptionPane.PLAIN_MESSAGE);
     }
 
     // =========================================================================
